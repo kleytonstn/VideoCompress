@@ -2,12 +2,11 @@ package com.example.video_compress
 
 import android.app.Activity
 import android.content.Context
+import android.graphics.Bitmap.CompressFormat
 import android.net.Uri
 import android.util.Log
 import com.otaliastudios.transcoder.Transcoder
 import com.otaliastudios.transcoder.TranscoderListener
-import com.otaliastudios.transcoder.source.TrimDataSource
-import com.otaliastudios.transcoder.source.UriDataSource
 import com.otaliastudios.transcoder.strategy.DefaultVideoStrategy
 import com.otaliastudios.transcoder.strategy.TrackStrategy
 import com.otaliastudios.transcoder.strategy.size.*
@@ -43,6 +42,27 @@ class VideoCompressPlugin private constructor(private val activity: Activity, pr
             "getMediaInfo" -> {
                 val path = call.argument<String>("path")
                 result.success(Utility(channelName).getMediaInfoJson(context, path!!).toString())
+            }
+            "makeThumbnailFile" -> {
+                val inPath = call.argument<String>("inPath")!!
+                val outPath = call.argument<String>("outPath")!!
+                val quality = call.argument<Int>("quality")!!
+                val position = call.argument<Int>("position")!! // to long
+                Log.d("HUY", "outPath is $outPath")
+                val filename = outPath.substring(outPath.lastIndexOf('/') + 1)
+                val pos = filename.lastIndexOf('.')
+                val ext = if (pos == -1) {
+                    "jpg"
+                } else {
+                    filename.substring(pos + 1)
+                }
+                Log.d("HUY", "EXT is $ext")
+                val format = when (ext) {
+                    "png" -> CompressFormat.PNG
+                    "webp" -> CompressFormat.WEBP
+                    else -> CompressFormat.JPEG
+                }
+                result.success(Utility(channelName).makeThumbnailFileJson(context, inPath, outPath, format, quality, position.toLong()).toString())
             }
             "deleteAllCache" -> {
                 result.success(Utility(channelName).deleteAllCache(context, result))

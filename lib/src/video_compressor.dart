@@ -111,6 +111,37 @@ class VideoCompress {
     return MediaInfo.fromJson(jsonMap);
   }
 
+  /// Makes a thumbnail image and returns the media information from [inPath]
+  ///
+  /// Makes a thumbnail image from [inPath] and return [Future<MediaInfo>]
+  ///
+  /// ## example
+  /// ```dart
+  /// final info = await _flutterVideoCompress.getMediaInfo(
+  ///   file.path,
+  ///   Directory.systemTemp.path + '/my_thumbnail.webp',
+  /// );
+  /// debugPrint(info.toJson());
+  /// ```
+  Future<MediaInfo> makeThumbnailFile(
+    String inPath,
+    String outPath, {
+    int quality = 100,
+    int position = 1,
+  }) async {
+    assert(inPath != null);
+    assert(quality > 1 || quality < 100);
+
+    final jsonStr = await _invoke<String>('makeThumbnailFile', {
+      'inPath': inPath,
+      'outPath': outPath,
+      'quality': quality,
+      'position': position,
+    });
+    final jsonMap = json.decode(jsonStr);
+    return MediaInfo.fromJson(jsonMap);
+  }
+
   /// compress video from [path]
   /// compress video from [path] return [Future<MediaInfo>]
   ///

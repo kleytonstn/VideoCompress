@@ -2,12 +2,16 @@ package com.example.video_compress
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Bitmap.CompressFormat
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
 import io.flutter.plugin.common.MethodChannel
-import org.json.JSONObject
+import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
+import org.json.JSONObject
 
 class Utility(private val channelName: String) {
 
@@ -73,6 +77,53 @@ class Utility(private val channelName: String) {
             json.put("orientation", ori)
         }
 
+        return json
+    }
+
+    fun makeThumbnailFileJson(context: Context, path: String, out: String, format: CompressFormat, quality: Int, position: Long): JSONObject {
+        val file = File(path)
+        val retriever = MediaMetadataRetriever()
+        var bitmap: Bitmap?
+
+        val json = JSONObject()
+
+        retriever.setDataSource(context, Uri.fromFile(file))
+
+        bitmap = retriever.getFrameAtTime(position, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+        if (bitmap == null)
+            throw RuntimeException()
+
+        try {
+            val f = FileOutputStream(out)
+            val stream = ByteArrayOutputStream()
+            bitmap.compress(format, quality, stream)
+            val bytes = stream.toByteArray()
+            f.write(bytes)
+            f.close()
+            // Log.d(TAG, String.format("buildThumbnailFile( written:%d )", bytes.length));
+        } catch (e: IOException) {
+            e.getStackTrace()
+            throw RuntimeException(e)
+        }
+
+        val width = bitmap.width
+        val height = bitmap.height
+        val durationStr = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+        val title = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE) ?: ""
+        val author = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_AUTHOR) ?: ""
+        val duration = java.lang.Long.parseLong(durationStr)
+        val filesize = file.length()
+
+        retriever.release()
+        bitmap.recycle()
+
+        json.put("path", path)
+        json.put("title", title)
+        json.put("author", author)
+        json.put("width", width)
+        json.put("height", height)
+        json.put("duration", duration)
+        json.put("filesize", filesize)
         return json
     }
 
