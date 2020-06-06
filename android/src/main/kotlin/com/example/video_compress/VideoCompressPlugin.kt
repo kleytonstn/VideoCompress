@@ -2,11 +2,12 @@ package com.example.video_compress
 
 import android.app.Activity
 import android.content.Context
-import android.content.Intent
 import android.net.Uri
+import android.util.Log
 import com.otaliastudios.transcoder.Transcoder
 import com.otaliastudios.transcoder.TranscoderListener
-import com.otaliastudios.transcoder.strategy.DefaultVideoStrategies
+import com.otaliastudios.transcoder.source.TrimDataSource
+import com.otaliastudios.transcoder.source.UriDataSource
 import com.otaliastudios.transcoder.strategy.DefaultVideoStrategy
 import com.otaliastudios.transcoder.strategy.TrackStrategy
 import com.otaliastudios.transcoder.strategy.size.*
@@ -18,7 +19,6 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
-
 /**
  * VideoCompressPlugin
  */
@@ -26,7 +26,6 @@ class VideoCompressPlugin private constructor(private val activity: Activity, pr
 
     var channelName = "video_compress"
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
-
         when (call.method) {
             "getByteThumbnail" -> {
                 val path = call.argument<String>("path")
@@ -46,11 +45,11 @@ class VideoCompressPlugin private constructor(private val activity: Activity, pr
                 result.success(Utility(channelName).getMediaInfoJson(context, path!!).toString())
             }
             "deleteAllCache" -> {
-                result.success(Utility(channelName).deleteAllCache(context, result));
+                result.success(Utility(channelName).deleteAllCache(context, result))
             }
             "cancelCompression" -> {
-                result.success(false);
-                //TODO: Made Transcoder.into Global to call Transcoder.cancel(true); here
+                result.success(false)
+                // TODO: Made Transcoder.into Global to call Transcoder.cancel(true); here
             }
             "compressVideo" -> {
                 val path = call.argument<String>("path")!!
@@ -59,20 +58,18 @@ class VideoCompressPlugin private constructor(private val activity: Activity, pr
                 val startTime = call.argument<Int>("startTime")
                 val duration = call.argument<Int>("duration")
                 val includeAudio = call.argument<Boolean>("includeAudio")
-                val frameRate = if (call.argument<Int>("frameRate")==null) 30 else call.argument<Int>("frameRate")
+                val frameRate = if (call.argument<Int>("frameRate") == null) 30 else call.argument<Int>("frameRate")
 
                 val tempDir: String = this.context.getExternalFilesDir("video_compress")!!.absolutePath
                 val out = SimpleDateFormat("yyyy-MM-dd hh-mm-ss").format(Date())
                 val destPath: String = tempDir + File.separator + "VID_" + out + ".mp4"
 
-                var strategy: TrackStrategy = DefaultVideoStrategy.atMost(340).build();
+                var strategy: TrackStrategy = DefaultVideoStrategy.atMost(340).build()
 
                 when (quality) {
-
                     0 -> {
-                      strategy = DefaultVideoStrategy.atMost(720).build()
+                        strategy = DefaultVideoStrategy.atMost(720).build()
                     }
-
                     1 -> {
                         strategy = DefaultVideoStrategy.atMost(360).build()
                     }
@@ -90,16 +87,16 @@ class VideoCompressPlugin private constructor(private val activity: Activity, pr
                     }
                 }
 
-
                 Transcoder.into(destPath!!)
                         .addDataSource(context, Uri.parse(path))
                         .setVideoTrackStrategy(strategy)
                         .setListener(object : TranscoderListener {
                             override fun onTranscodeProgress(progress: Double) {
-                                channel.invokeMethod("updateProgress", progress * 100.00)
+                                channel.invokeMethod("updateProgress", progress)
                             }
+
                             override fun onTranscodeCompleted(successCode: Int) {
-                                channel.invokeMethod("updateProgress", 100.00)
+                                channel.invokeMethod("updateProgress", 1)
                                 val json = Utility(channelName).getMediaInfoJson(context, destPath)
                                 json.put("isCancel", false)
                                 result.success(json.toString())
@@ -133,5 +130,4 @@ class VideoCompressPlugin private constructor(private val activity: Activity, pr
             channel.setMethodCallHandler(instance)
         }
     }
-
 }
